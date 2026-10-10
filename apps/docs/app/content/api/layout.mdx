@@ -7,6 +7,7 @@ Provides container-aware composition primitives inspired by CSS Flexbox:
 - `Flex.row` / `Flex.col` distribute space among children proportionally
 - `Container.make` passes available dimensions to child builders
 - `Grid.make` / `Grid.auto` arrange items in fixed-column grids
+- `Place.make` places and clips content within an exact bounded region
 
 All helpers are pure functions that return standard Box values,
 composable with existing Box primitives (border, annotate, pad, etc).
@@ -258,4 +259,100 @@ export interface Options {
   readonly align?: Box.Alignment;
   readonly stretch?: boolean;
 }
+```
+
+### Place (namespace)
+
+#### Options (interface)
+
+Bounded placement options in terminal cells.
+
+**Signature**
+
+```ts
+export interface Options {
+  readonly width: number;
+  readonly height: number;
+  readonly x?: Horizontal;
+  readonly y?: Vertical;
+}
+```
+
+#### Horizontal (type alias)
+
+Horizontal coordinate or anchor.
+
+**Signature**
+
+```ts
+type Horizontal = number | "left" | "center" | "right";
+```
+
+#### Vertical (type alias)
+
+Vertical coordinate or anchor.
+
+**Signature**
+
+```ts
+type Vertical = number | "top" | "center" | "bottom";
+```
+
+## transformations
+
+### Place
+
+Places content within an exact bounded region using terminal cell coordinates.
+
+The make helper sets both dimensions; horizontal and vertical preserve the
+other source dimension. Numeric offsets default to zero. Center rounding uses
+floor((outer - inner) / 2), including oversized content. Visible annotations
+survive clipping, and padding outside the source is unannotated.
+
+Dimensions must be non-negative safe integers and numeric offsets must be safe
+integers. Invalid values and Cmd annotations anywhere in the source throw
+RangeError, including when the source is wholly outside the viewport.
+
+**Example**
+
+```typescript
+import * as Box from "effect-boxes/Box";
+import { Place } from "effect-boxes/Layout";
+
+const placed = Place.make(Box.text("Hello"), {
+  width: 20,
+  height: 4,
+  x: "center",
+  y: "bottom",
+});
+console.log(placed.cols, placed.rows); // 20, 4
+```
+
+**Signature**
+
+```ts
+declare const Place: {
+  readonly make: ((
+    options: Place.Options
+  ) => <A>(self: Box.Box<A>) => Box.Box<A>) &
+    (<A>(self: Box.Box<A>, options: Place.Options) => Box.Box<A>);
+  readonly horizontal: ((
+    width: number,
+    position: Place.Horizontal
+  ) => <A>(self: Box.Box<A>) => Box.Box<A>) &
+    (<A>(
+      self: Box.Box<A>,
+      width: number,
+      position: Place.Horizontal
+    ) => Box.Box<A>);
+  readonly vertical: ((
+    height: number,
+    position: Place.Vertical
+  ) => <A>(self: Box.Box<A>) => Box.Box<A>) &
+    (<A>(
+      self: Box.Box<A>,
+      height: number,
+      position: Place.Vertical
+    ) => Box.Box<A>);
+};
 ```
