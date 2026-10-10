@@ -164,15 +164,6 @@ export const center1: Box.Alignment = "AlignCenter1";
 
 export const center2: Box.Alignment = "AlignCenter2";
 
-const alignmentOffset = (alignment: Box.Alignment, space: number): number =>
-  Match.value(alignment).pipe(
-    Match.when("AlignFirst", () => 0),
-    Match.when("AlignLast", () => space),
-    Match.when("AlignCenter1", () => Math.trunc(space / 2)),
-    Match.when("AlignCenter2", () => space - Math.trunc(space / 2)),
-    Match.exhaustive
-  );
-
 // -----------------------------------------------------------------------------
 // Constructors
 // -----------------------------------------------------------------------------
@@ -1317,7 +1308,7 @@ const alignedCrop = (
   readonly innerSize: number;
   readonly trailingBlank: number;
 } => {
-  const innerStart = alignmentOffset(alignment, outerSize - innerSize);
+  const innerStart = Width.alignmentOffset(alignment, innerSize, outerSize);
   const innerEnd = innerStart + innerSize;
   const cropEnd = offset + size;
   const visibleStart = Math.max(offset, innerStart);
@@ -1383,9 +1374,12 @@ export const cropWidth = dual<
           skipped = 0;
         }
 
-        return cropped.length === 0
-          ? emptyBox(box.rows, columnsToKeep)
-          : hcat(cropped, top);
+        return preserveAnnotation(
+          box,
+          cropped.length === 0
+            ? emptyBox(box.rows, columnsToKeep)
+            : hcat(cropped, top)
+        );
       },
       col: (boxes) =>
         make({

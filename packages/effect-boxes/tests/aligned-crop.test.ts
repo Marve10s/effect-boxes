@@ -34,3 +34,49 @@ describe("cropping aligned boxes", () => {
     expect(Box.renderPlainSync(cropped)).toBe("c");
   });
 });
+
+describe("cropping follows rendered center alignment", () => {
+  it("selects the same columns for both center variants and odd/even extents", () => {
+    for (const alignment of [Box.center1, Box.center2]) {
+      for (let inner = 1; inner <= 6; inner++) {
+        for (let outer = 1; outer <= 6; outer++) {
+          const source = Box.alignHoriz(
+            Box.text("ABCDEF".slice(0, inner)),
+            alignment,
+            outer
+          );
+          const rendered = Box.renderPlainSync(source);
+          for (let offset = 0; offset <= outer; offset++) {
+            for (let width = 0; width <= outer; width++) {
+              expect(
+                Box.renderPlainSync(Box.cropWidth(source, offset, width))
+              ).toBe(rendered.slice(offset, offset + width));
+            }
+          }
+        }
+      }
+    }
+  });
+
+  it("selects the same rows for both center variants and odd/even extents", () => {
+    for (const alignment of [Box.center1, Box.center2]) {
+      for (let inner = 1; inner <= 6; inner++) {
+        for (let outer = 1; outer <= 6; outer++) {
+          const source = Box.alignVert(
+            Box.text("ABCDEF".slice(0, inner).split("").join("\n")),
+            alignment,
+            outer
+          );
+          const rendered = Box.renderPlainSync(source).split("\n");
+          for (let offset = 0; offset <= outer; offset++) {
+            for (let height = 0; height <= outer; height++) {
+              expect(
+                Box.renderPlainSync(Box.cropHeight(source, offset, height))
+              ).toBe(rendered.slice(offset, offset + height).join("\n"));
+            }
+          }
+        }
+      }
+    }
+  });
+});
