@@ -5,6 +5,7 @@
  * - `Flex.row` / `Flex.col` distribute space among children proportionally
  * - `Container.make` passes available dimensions to child builders
  * - `Grid.make` / `Grid.auto` arrange items in fixed-column grids
+ * - `Place.make` places and clips content within an exact bounded region
  *
  * All helpers are pure functions that return standard Box values,
  * composable with existing Box primitives (border, annotate, pad, etc).
@@ -15,6 +16,7 @@ import type * as Box from "./Box.js";
 import * as internalContainer from "./internal/container.js";
 import * as internalFlex from "./internal/flex.js";
 import * as internalGrid from "./internal/grid.js";
+import * as internalPlace from "./internal/place.js";
 
 /*
  *  --------------------------------------------------------------------------------
@@ -381,5 +383,119 @@ export declare namespace Grid {
     readonly gap?: number;
     readonly align?: Box.Alignment;
     readonly stretch?: boolean;
+  }
+}
+
+/**
+ * Places content within an exact bounded region using terminal cell coordinates.
+ *
+ * The make helper sets both dimensions; horizontal and vertical preserve the
+ * other source dimension. Numeric offsets default to zero. Center rounding uses
+ * floor((outer - inner) / 2), including oversized content. Visible annotations
+ * survive clipping, and padding outside the source is unannotated.
+ *
+ * Dimensions must be non-negative safe integers and numeric offsets must be safe
+ * integers. Invalid values and Cmd annotations anywhere in the source throw
+ * RangeError, including when the source is wholly outside the viewport.
+ *
+ * @example
+ * ```typescript
+ * import * as Box from "effect-boxes/Box"
+ * import { Place } from "effect-boxes/Layout"
+ *
+ * const placed = Place.make(Box.text("Hello"), {
+ *   width: 20, height: 4, x: "center", y: "bottom"
+ * })
+ * console.log(placed.cols, placed.rows) // 20, 4
+ * ```
+ *
+ * @category transformations
+ */
+export const Place = {
+  /**
+   * Places and clips a Box within exactly the requested width and height.
+   *
+   * Offsets default to zero. Center uses floor((outer - inner) / 2), including
+   * oversized content. Padding outside the source is unannotated. Visible source
+   * annotations survive clipping; partial wide glyphs become blank cells.
+   *
+   * @throws RangeError - If dimensions are negative or not safe integers, offsets
+   * are not safe integers, anchors are invalid, or the source contains Cmd annotations.
+   *
+   * @example
+   * ```typescript
+   * import * as Box from "effect-boxes/Box"
+   * import { Place } from "effect-boxes/Layout"
+   *
+   * const placed = Box.text("Hello").pipe(
+   *   Place.make({ width: 20, height: 4, x: "center", y: "bottom" })
+   * )
+   * console.log(placed.cols, placed.rows) // 20, 4
+   * ```
+   *
+   * @category transformations
+   */
+  make: internalPlace.make,
+
+  /**
+   * Places a Box horizontally within an exact width, preserving its height.
+   *
+   * Uses the same clipping, validation, and command rejection as Place.make.
+   *
+   * @example
+   * ```typescript
+   * import * as Box from "effect-boxes/Box"
+   * import { Place } from "effect-boxes/Layout"
+   *
+   * const placed = Place.horizontal(Box.text("Hello"), 10, "right")
+   * console.log(Box.renderPlainSync(placed)) // "     Hello"
+   * ```
+   *
+   * @category transformations
+   */
+  horizontal: internalPlace.horizontal,
+
+  /**
+   * Places a Box vertically within an exact height, preserving its width.
+   *
+   * Uses the same clipping, validation, and command rejection as Place.make.
+   *
+   * @example
+   * ```typescript
+   * import * as Box from "effect-boxes/Box"
+   * import { Place } from "effect-boxes/Layout"
+   *
+   * const placed = Box.text("Hello").pipe(Place.vertical(3, "bottom"))
+   * console.log(placed.rows, placed.cols) // 3, 5
+   * ```
+   *
+   * @category transformations
+   */
+  vertical: internalPlace.vertical,
+} as const;
+
+/**
+ * @category models
+ */
+export declare namespace Place {
+  /**
+   * Horizontal coordinate or anchor.
+   * @category models
+   */
+  export type Horizontal = number | "left" | "center" | "right";
+  /**
+   * Vertical coordinate or anchor.
+   * @category models
+   */
+  export type Vertical = number | "top" | "center" | "bottom";
+  /**
+   * Bounded placement options in terminal cells.
+   * @category models
+   */
+  export interface Options {
+    readonly width: number;
+    readonly height: number;
+    readonly x?: Horizontal;
+    readonly y?: Vertical;
   }
 }

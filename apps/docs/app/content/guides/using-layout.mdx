@@ -1,5 +1,5 @@
 import * as Box from "effect-boxes/Box";
-import { Flex, Container, Grid } from "effect-boxes/Layout";
+import { Flex, Container, Grid, Place } from "effect-boxes/Layout";
 import { pipe } from "effect";
 
 # Using Layout
@@ -405,6 +405,79 @@ const grid = Grid.auto(cards, 50, { minColWidth: 20 });
 | `gap`         | `[horizontal, vertical]` spacing between cells |
 | `align`       | Horizontal alignment within cells              |
 | `stretch`     | Whether to stretch items to fill column width  |
+
+## Place content inside a fixed area
+
+`Place.make` positions content inside an area with exact `width` and `height`.
+Content outside the area is clipped. Empty cells contain spaces. The result is
+a normal `Box`, so you can add a border or compose it with other Boxes.
+
+export const outPlace = Box.renderPrettySync(
+  Box.text("Ready").pipe(
+    Place.make({ width: 20, height: 5, x: "center", y: "center" }),
+    Box.border("rounded")
+  )
+);
+
+<CodeExample>
+
+```typescript
+import * as Box from "effect-boxes/Box";
+import { Place } from "effect-boxes/Layout";
+
+const panel = Box.text("Ready").pipe(
+  Place.make({ width: 20, height: 5, x: "center", y: "center" }),
+  Box.border("rounded")
+);
+```
+
+<AnsiTerminal input={outPlace} />
+</CodeExample>
+
+`x` counts columns from the left edge, and `y` counts rows from the top edge.
+Both default to `0`. Negative offsets clip the start of the content.
+For horizontal anchors, use `"left"`, `"center"`, or `"right"`.
+For vertical anchors, use `"top"`, `"center"`, or `"bottom"`.
+Centering uses `Math.floor((areaSize - contentSize) / 2)` on each axis,
+including when content is larger than the area.
+
+Use `Place.horizontal` to change only the width, or `Place.vertical` to change
+only the height. Each helper preserves the other dimension.
+
+export const outPlaceClipped = Box.renderPrettySync(
+  Box.text("ABCDEF\nGHIJKL\nMNOPQR").pipe(
+    Place.horizontal(4, -1),
+    Place.vertical(2, "bottom"),
+    Box.border()
+  )
+);
+
+<CodeExample>
+
+```typescript
+const clipped = Box.text("ABCDEF\nGHIJKL\nMNOPQR").pipe(
+  Place.horizontal(4, -1),
+  Place.vertical(2, "bottom"),
+  Box.border()
+);
+// Visible content: HIJK, then NOPQ.
+```
+
+<AnsiTerminal input={outPlaceClipped} />
+</CodeExample>
+
+Place retains nested annotations on visible source content, including styles
+and reactive regions. Added padding has no source annotations. Apply an
+annotation to the resulting Box if it should cover the whole area.
+
+Place uses the existing logical Reactive tracking API. It does not correct
+pre-existing differences between rendered and tracked coordinates for centered
+SubBoxes; see [the tracking alignment issue](https://github.com/lloydrichards/effect-boxes/issues/132).
+
+Dimensions must be nonnegative safe integers. Numeric offsets must be safe
+integers. Place throws `RangeError` for invalid numbers or any `Cmd` annotation
+inside the source Box, even if the command would be clipped. Compose terminal
+commands separately from placed content.
 
 ## Composing with Box Primitives
 
